@@ -108,19 +108,30 @@ services.keyd = {
 
 # services ___________________________________________________________________________________________
 
+
+
 services = {
+    rpcbind.enable = true;
     gnome.gnome-keyring.enable = true;
+    spice-vdagentd.enable = true;
     locate.enable = true;
     power-profiles-daemon.enable = false;
     tlp.enable = true; 
     blueman.enable = true; # Enable bluetooth
     printing.enable = true; # Enable CUPS to print documents.
     logind.lidSwitchExternalPower = "ignore"; # dont suspend the laptop when closing the lid with AC power on
+    nfs.server.enable = true;
+    nfs.server.exports = ''
+	    /export 192.168.122.186(rw,sync,no_subtree_check) 
+	    /export/public 192.168.122.186(rw,sync,no_subtree_check) 
+	    /export/private 192.168.122.186(rw,sync,no_subtree_check) 
+  '';
 
+    displayManager.defaultSession = "none+qtile";
     xserver = {
 #	layout = "us,es"; # languages 
 	exportConfiguration = true;
-	xkbVariant = ""; # keymap 
+	xkb.variant = ""; # keymap 
 	enable = true;
 	videoDrivers = [ "intel" ];
 	deviceSection = ''
@@ -135,7 +146,6 @@ services = {
 		};
 	};
 	displayManager = {
-		defaultSession = "none+qtile";
 		lightdm.enable = true;
 # launch commands at the beggining of the X session	
 		sessionCommands = '' 
@@ -161,6 +171,7 @@ services = {
 networking = {
 	hostName = "nixos"; # Define your hostname.
 	# wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+	firewall.allowedTCPPorts = [ 2049 ];
 	networkmanager.enable = true;
 	# interfaces = {
 	# };
@@ -176,6 +187,53 @@ networking = {
 	};
 };
 
+services.samba = {
+  enable = true;
+  securityType = "user";
+  openFirewall = true;
+  extraConfig = ''
+    workgroup = WORKGROUP
+    server string = smbnix
+    netbios name = smbnix
+    security = user 
+    #use sendfile = yes
+    #max protocol = smb2
+    # note: localhost is the ipv6 localhost ::1
+    hosts allow = 192.168.0. 127.0.0.1 localhost
+    hosts deny = 0.0.0.0/0
+    guest account = nobody
+    map to guest = bad user
+  '';
+  shares = {
+    public = {
+      path = "$HOME/share/public";
+      browseable = "yes";
+      "read only" = "no";
+      "guest ok" = "yes";
+      "create mask" = "0644";
+      "directory mask" = "0755";
+      "force user" = "username";
+      "force group" = "groupname";
+    };
+    private = {
+      path = "$HOME/share/private";
+      browseable = "yes";
+      "read only" = "no";
+      "guest ok" = "no";
+      "create mask" = "0644";
+      "directory mask" = "0755";
+      "force user" = "username";
+      "force group" = "groupname";
+    };
+  };
+};
+
+services.samba-wsdd = {
+  enable = true;
+  openFirewall = true;
+};
+
+networking.firewall.allowPing = true;
 
 # time zone_________________________________________________________________________________________
 
@@ -203,6 +261,17 @@ fileSystems."/run/media/mgr/toshiba1Tb" ={
 	fsType = "ext4";
 	options = [ "nofail" ];
 };
+
+# export folder
+
+fileSystems."/export/public" = {
+    device = "/mnt/public";
+    options = [ "bind" ];
+  };
+fileSystems."/export/private" = {
+    device = "/mnt/private";
+    options = [ "bind" ];
+  };
 
 
 /*environment.plasma5.excludePackages = with pkgs.libsForQt5; [
@@ -277,7 +346,7 @@ users.groups.plocate.gid =1001;
 
 users.users.mgr = {
     isNormalUser = true;
-    extraGroups = [ "networkmanager" "plocate" "libvirtd" "keyd" "docker" "mlocate" "wheel" "wireshark" "video" "audio" "lp" "scanner" ];
+    extraGroups = [ "networkmanager" "plocate" "libvirtd" "keyd" "docker" "mlocate" "wheel" "kvm" "libvirt" "input" "wireshark" "video" "audio" "lp" "scanner" "smbgroup" ];
 };
 
 nixpkgs.config.permittedInsecurePackages = [
@@ -289,33 +358,24 @@ environment.systemPackages = with pkgs; [
 
 #langs______________________________________________________________________________________________
 	python3
-	nodejs_20
-	perl
-	perl536Packages.CPAN
-	rubyPackages_3_2.gdk_pixbuf2
-	php
-	julia_18-bin
 	luajitPackages.luarocks
 	luajitPackages.jsregexp
-	rubyPackages_3_2.glib2
-	ruby
 	rustc
 	python311Packages.pip
 	go
 	glib
 
 #cli programs_________________________________________________________________________________________
+	dmg2img
+	stow # symlink manager
 	racket
 	speechd
-	lolcat
-	tomato-c # pomodoro written in c 
 	timer # a `sleep` with progress
-	python311Packages.pandas# python library
 	poetry # manage python packages and dependencies
 	nur.repos.dustinblackman.oatmeal # ollama client
 	ollama # run ai models locally
 	starship # zsh prompt
-	spaceship-prompt # zsh prompt
+#	spaceship-prompt # zsh prompt
 	gccgo13 # cc compiler
 	gnumake # tool to control the generation of non-source files from sources
 	xclip # access x11 clipboard
@@ -323,7 +383,6 @@ environment.systemPackages = with pkgs; [
 	direnv # shell extension for managing your environment
 	zsh # shell
 	readline
-	joplin # notes 
 	wget
 	xkbset # rebind keys on x11
 	xorg.xkbcomp # rebind keys on x
@@ -342,7 +401,6 @@ environment.systemPackages = with pkgs; [
 	lm_sensors # Tools for reading hardware sensors
 	neovim # text editor
 	autoconf
-	bear # clangd compilation database generator
 	libtool
 	inotify-tools # monitor filesystem events
 	gvfs
@@ -358,21 +416,19 @@ environment.systemPackages = with pkgs; [
 	libglibutil
 	speedtest-cli # net speed test
 	surfraw # cli browser utility
-	w3m # web browser
 	wmctrl
 	xorg.xhost
 	distrobox # make linux system containers
 	plocate
 	xkbd # keyboard management
 	xorg.xkbcomp # keyboard management
-	dfeet
+	d-spy
 	lshw
 	pciutils
 	xorg.xbacklight
 	cmake
 	xdg-ninja # script for checking unwanted files in homedir
 	xdg-utils
-	powertop
 	zip # basic zip utility
 	unzip # basic unzip utility
 	screen
@@ -387,7 +443,6 @@ environment.systemPackages = with pkgs; [
 	imagemagick # basic image manipulator
 	libsecret
 	htop # basic proccessing monitor
-	calc # calculator
 	bc
 	eww
 	cargo
@@ -399,6 +454,7 @@ environment.systemPackages = with pkgs; [
 	dpkg
 
 #gui programs____________________________________________________________________________
+	spotify
 
 	tipp10 #touch typing practice
 	telegram-desktop
@@ -516,6 +572,7 @@ environment.sessionVariables = rec {
 	XDG_CACHE_HOME = "$HOME/.cache"; # set default cache path
 	XDG_STATE_HOME = "$HOME/.local/state"; # set default cache path
 
+	#SSH_AUTH_SOCK="$(! cat ~/.ssh/ssh-agent-socket)";
 	#EDITOR = "codium --reuse-window --wait"; # default editor
 	EDITOR = "nvim"; # default editor
 	DIRENV_WARN_TIMEOUT= "1000m";
@@ -554,7 +611,7 @@ nerdfonts
 
 nixpkgs.config = {
 	# allow closed source packages
-	allowUnfree = false;
+	allowUnfree = true;
 	# allow nur packages
 	packageOverrides = pkgs: rec{
 		nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
