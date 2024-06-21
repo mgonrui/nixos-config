@@ -127,7 +127,9 @@ services = {
 	    /export/private 192.168.122.186(rw,sync,no_subtree_check) 
   '';
 
-    displayManager.defaultSession = "none+qtile";
+#  environment.pathsToLink = [ "/libexec" ]; # links /libexec from derivations to /run/current-system/sw 
+
+    displayManager.defaultSession = "none+i3";
     xserver = {
 #	layout = "us,es"; # languages 
 	exportConfiguration = true;
@@ -139,6 +141,15 @@ services = {
 		Option "TearFree" "true"
 	'';
 	windowManager = {
+		i3 = {
+	      		enable = true;
+	      		extraPackages = with pkgs; [
+			dmenu #application launcher most people use
+			i3status # gives you the default i3 status bar
+			i3lock #default i3 screen locker
+			i3blocks #if you are planning on using i3blocks over i3status
+	     		];
+	    	};
 		qtile = {
 			enable = true;
 			backend = "x11";
@@ -289,8 +300,8 @@ fileSystems."/export/private" = {
 # sound_____________________________________________________________________________________________
 
 sound.enable = true;
-hardware.pulseaudio.enable = false;
-security.rtkit.enable = true;
+hardware.pulseaudio.enable = true;
+/*security.rtkit.enable = true;
 services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -303,6 +314,8 @@ services.pipewire = {
     # no need to redefine it in your config for now)
     #media-session.enable = true;
 };
+*/
+
 
 
 #defautl shell ______________________________________________________________________________________
@@ -366,6 +379,10 @@ environment.systemPackages = with pkgs; [
 	glib
 
 #cli programs_________________________________________________________________________________________
+	pamixer
+	python311Packages.pulsectl
+	acpi
+	glib
 	dmg2img
 	stow # symlink manager
 	racket
@@ -454,8 +471,9 @@ environment.systemPackages = with pkgs; [
 	dpkg
 
 #gui programs____________________________________________________________________________
+	nitrogen # set desktop wallpaper
+	i3blocks
 	spotify
-
 	tipp10 #touch typing practice
 	telegram-desktop
 	python311Packages.pygobject3
