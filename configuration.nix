@@ -105,7 +105,6 @@ services.keyd = {
       };
     };
   }; 
-
 # services ___________________________________________________________________________________________
 
 
@@ -181,70 +180,12 @@ services = {
 
 networking = {
 	hostName = "nixos"; # Define your hostname.
-	# wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-	firewall.allowedTCPPorts = [ 2049 ];
 	networkmanager.enable = true;
-	# interfaces = {
-	# };
-	# defaultGateway = "";
-	# nameservers = [""];
-	# Configure network proxy if necessary
-	# proxy = {
-	# default = "http://user:password@proxy:port/";
-	# noProxy = "127.0.0.1,localhost,internal.domain";
-	# };
 	firewall = {
-	enable = true;
+		enable = true;
+		allowedTCPPorts = [ 2049 ];
 	};
 };
-
-services.samba = {
-  enable = true;
-  securityType = "user";
-  openFirewall = true;
-  extraConfig = ''
-    workgroup = WORKGROUP
-    server string = smbnix
-    netbios name = smbnix
-    security = user 
-    #use sendfile = yes
-    #max protocol = smb2
-    # note: localhost is the ipv6 localhost ::1
-    hosts allow = 192.168.0. 127.0.0.1 localhost
-    hosts deny = 0.0.0.0/0
-    guest account = nobody
-    map to guest = bad user
-  '';
-  shares = {
-    public = {
-      path = "$HOME/share/public";
-      browseable = "yes";
-      "read only" = "no";
-      "guest ok" = "yes";
-      "create mask" = "0644";
-      "directory mask" = "0755";
-      "force user" = "username";
-      "force group" = "groupname";
-    };
-    private = {
-      path = "$HOME/share/private";
-      browseable = "yes";
-      "read only" = "no";
-      "guest ok" = "no";
-      "create mask" = "0644";
-      "directory mask" = "0755";
-      "force user" = "username";
-      "force group" = "groupname";
-    };
-  };
-};
-
-services.samba-wsdd = {
-  enable = true;
-  openFirewall = true;
-};
-
-networking.firewall.allowPing = true;
 
 # time zone_________________________________________________________________________________________
 
@@ -273,8 +214,6 @@ fileSystems."/run/media/mgr/toshiba1Tb" ={
 	options = [ "nofail" ];
 };
 
-# export folder
-
 fileSystems."/export/public" = {
     device = "/mnt/public";
     options = [ "bind" ];
@@ -284,18 +223,6 @@ fileSystems."/export/private" = {
     options = [ "bind" ];
   };
 
-
-/*environment.plasma5.excludePackages = with pkgs.libsForQt5; [
-	elisa
-	gwenview
-	oxygen
-	khelpcenter
-	konsole
-	plasma-browser-integration
-	kdewallet
-	print-manager
-];
-*/
 
 # sound_____________________________________________________________________________________________
 
@@ -320,7 +247,11 @@ services.pipewire = {
 
 #defautl shell ______________________________________________________________________________________
 
-programs.zsh.enable = true;
+programs.zsh = {
+	enable = true;
+	syntaxHighlighting.enable = true;
+	enableCompletion = true;
+};
 users.defaultUserShell = pkgs.zsh;
 programs.starship.enable = true;
 programs.starship.settings = {
@@ -359,12 +290,13 @@ users.groups.plocate.gid =1001;
 
 users.users.mgr = {
     isNormalUser = true;
-    extraGroups = [ "networkmanager" "plocate" "libvirtd" "keyd" "docker" "mlocate" "wheel" "kvm" "libvirt" "input" "wireshark" "video" "audio" "lp" "scanner" "smbgroup" ];
+    extraGroups = [ "networkmanager" "plocate" "libvirtd" "kvm" "keyd" "docker" "mlocate" "wheel" "kvm" "input" "wireshark" "video" "audio" "lp" "scanner" "smbgroup" ];
 };
 
 nixpkgs.config.permittedInsecurePackages = [
 ];
 
+virtualisation.spiceUSBRedirection.enable = true;
 # programs installed_______________________________________________________________________________
 
 environment.systemPackages = with pkgs; [ 
@@ -405,6 +337,7 @@ environment.systemPackages = with pkgs; [
 	xorg.xkbcomp # rebind keys on x
 	xorg.xev
 	buku # manage bookmarks
+	bukubrow # web extension for buku
 	oil-buku # finder for buku
 	#archivebox # archive webpages in your pc
 	i2pd
@@ -471,8 +404,8 @@ environment.systemPackages = with pkgs; [
 	dpkg
 
 #gui programs____________________________________________________________________________
+	shaarli # bookmark manager
 	nitrogen # set desktop wallpaper
-	i3blocks
 	spotify
 	tipp10 #touch typing practice
 	telegram-desktop
